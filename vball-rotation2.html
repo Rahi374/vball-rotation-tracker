@@ -1,0 +1,434 @@
+<!doctype html>
+
+<title>Volleyball Rotation Tracker</title>
+
+<style>
+body { width: 30em; }
+
+div.lineup {
+  display: inline-block;
+}
+
+div.linear {
+  width: 6em;
+}
+
+p {
+  margin: 0 0 1em;
+}
+
+td.vr {
+  background-color: #555;
+  width: 0.1em;
+}
+
+input {
+  width: 2em;
+  border: thin solid #aaa;
+  margin-bottom: 0.2em;
+}
+
+p > input {
+  margin-left: 0.5em;
+}
+
+input.plus1, input.onCourt, input.undo, input.serving {
+  border: thin groove #000;
+  margin: 0 1.3em;
+  width: 5em;
+}
+
+td.instructions {
+  padding-top: 0.5em;
+}
+
+td.instructions ol {
+  width: 26em;
+}
+
+td.instructions li {
+  margin-top: 0.5em;
+}
+
+.hidden {
+  display: none;
+}
+
+.score {
+  background: white;
+  color: black;
+}
+
+</style>
+
+<script src=lib/jquery.js></script>
+<script src=http://code.jquery.com/jquery-2.1.1.min.js></script>
+
+<table>
+
+<tr>
+  <td>Score:</td>
+  <td><center><input class=score type=text id=scoret1 value=0 disabled></center></td>
+  <td></td>
+  <td><center><input class=score type=text id=scoret2 value=0 disabled></center></td>
+  <td></td>
+</tr>
+
+<tr>
+  <td>Serving:</td>
+  <td><input class=serving type=checkbox id=servingt1></td>
+  <td></td>
+  <td><input class=serving type=checkbox id=servingt2></td>
+  <td></td>
+</tr>
+
+
+<tr>
+
+<td>
+<div class="lineup linear" id=t1>
+  <ol>
+    <li><input type=text id=p1>
+    <li><input type=text id=p2>
+    <li><input type=text id=p3>
+    <li><input type=text id=p4>
+    <li><input type=text id=p5>
+    <li><input type=text id=p6>
+  </ol>
+</div>
+</td>
+
+<td>
+<div class="lineup tabular" id=t1>
+  <table>
+    <tr>
+      <td><p>5<input type=text id=p5>
+      <td><p>4<input type=text id=p4>
+    </tr>
+    <tr>
+      <td><p>6<input type=text id=p6>
+      <td><p>3<input type=text id=p3>
+    </tr>
+    <tr>
+      <td><p>1<input type=text id=p1>
+      <td><p>2<input type=text id=p2>
+    </tr>
+  </table>
+</div>
+</td>
+
+<td class=vr></td>
+
+<td>
+<div class="lineup tabular" id=t2>
+  <table>
+    <tr>
+      <td><p>2<input type=text id=p2>
+      <td><p>1<input type=text id=p1>
+    </tr>
+    <tr>
+      <td><p>3<input type=text id=p3>
+      <td><p>6<input type=text id=p6>
+    </tr>
+    <tr>
+      <td><p>4<input type=text id=p4>
+      <td><p>5<input type=text id=p5>
+    </tr>
+  </table>
+</div>
+</td>
+
+<td>
+<div class="lineup linear" id=t2>
+  <ol>
+    <li><input type=text id=p1>
+    <li><input type=text id=p2>
+    <li><input type=text id=p3>
+    <li><input type=text id=p4>
+    <li><input type=text id=p5>
+    <li><input type=text id=p6>
+  </ol>
+</div>
+</td>
+
+</tr>
+
+
+<tr>
+  <td><input class=onCourt type=button id=onCourt1 value="On Court!"></td>
+  <td><input class=plus1 type=button id=plus1t1 value="+1"></td>
+  <td></td>
+  <td><input class=plus1 type=button id=plus1t2 value="+1"></td>
+  <td><input class=onCourt type=button id=onCourt2 value="On Court!"></td>
+</tr>
+
+<tr>
+  <td></td>
+  <td><input class=undo type=button id=undo value=Undo></td>
+  <td></td>
+  <td></td>
+  <td></td>
+</tr>
+
+<tr>
+    <td colspan=5 align=center class=instructions>
+      <em><a href="" class=howto>How to use Volleyball Rotation Tracker</a></em>
+      <ol class=hidden>
+	<li>Input the player numbers from the lineup directly into the player lists on the leftmost and rightmost sides of this app.
+	<li>Click the <i>On Court!</i> buttons for either team to view their lineup visually on the diagram/court.
+	<li>Tick the <i>Serving</i> box to designate the first serving team.
+	<li>Click <i>+1</i> on the corresponding team's side when they get a point. The rotation and score will be tracked for you.
+	<li>If you have made a mistake, click the <i>Undo</i> button to undo the last action. Previous actions may be undone as well.
+      </ol>
+    </td>
+</tr>
+
+</table>
+
+
+
+<script>
+var started = 0; // 1 if game started, 0 if game not started
+var serving = 0; // 1 if team 1 serving, 2 if team 2 serving, 0 if uninitialized
+var scoret1 = 0; // score for team 1
+var scoret2 = 0; // score for team 2
+
+var log = [];    // log for undoing (later for viewing game flows)
+
+// Check the presence of teams. Returns true if all are filled, false if at least one empty spot
+function checkteams(){
+  if ($("div.linear#t1 input#p1").val() == "" ||
+      $("div.linear#t1 input#p2").val() == "" ||
+      $("div.linear#t1 input#p3").val() == "" ||
+      $("div.linear#t1 input#p4").val() == "" ||
+      $("div.linear#t1 input#p5").val() == "" ||
+      $("div.linear#t1 input#p6").val() == "" ||
+      $("div.linear#t2 input#p1").val() == "" ||
+      $("div.linear#t2 input#p2").val() == "" ||
+      $("div.linear#t2 input#p3").val() == "" ||
+      $("div.linear#t2 input#p4").val() == "" ||
+      $("div.linear#t2 input#p5").val() == "" ||
+      $("div.linear#t2 input#p6").val() == "" ) {return false;}
+  else {return true;}
+}
+
+// Check the presence of teams on the court (diagram). Returns true if filled, false if at least one empty spot.
+function checktabular(){
+  if ($("div.tabular#t1 input#p1").val() == "" ||
+      $("div.tabular#t1 input#p2").val() == "" ||
+      $("div.tabular#t1 input#p3").val() == "" ||
+      $("div.tabular#t1 input#p4").val() == "" ||
+      $("div.tabular#t1 input#p5").val() == "" ||
+      $("div.tabular#t1 input#p6").val() == "" ||
+      $("div.tabular#t2 input#p1").val() == "" ||
+      $("div.tabular#t2 input#p2").val() == "" ||
+      $("div.tabular#t2 input#p3").val() == "" ||
+      $("div.tabular#t2 input#p4").val() == "" ||
+      $("div.tabular#t2 input#p5").val() == "" ||
+      $("div.tabular#t2 input#p6").val() == "" ) {return false;}
+  else {return true;}
+}
+
+// Move players on team 1 on court
+$("#onCourt1").on("click", function(){
+  $("div.tabular#t1 input#p1").val($("div.linear#t1 input#p1").val());
+  $("div.tabular#t1 input#p2").val($("div.linear#t1 input#p2").val());
+  $("div.tabular#t1 input#p3").val($("div.linear#t1 input#p3").val());
+  $("div.tabular#t1 input#p4").val($("div.linear#t1 input#p4").val());
+  $("div.tabular#t1 input#p5").val($("div.linear#t1 input#p5").val());
+  $("div.tabular#t1 input#p6").val($("div.linear#t1 input#p6").val());
+});
+
+// More players on team 2 on court
+$("#onCourt2").on("click", function(){
+  $("div.tabular#t2 input#p1").val($("div.linear#t2 input#p1").val());
+  $("div.tabular#t2 input#p2").val($("div.linear#t2 input#p2").val());
+  $("div.tabular#t2 input#p3").val($("div.linear#t2 input#p3").val());
+  $("div.tabular#t2 input#p4").val($("div.linear#t2 input#p4").val());
+  $("div.tabular#t2 input#p5").val($("div.linear#t2 input#p5").val());
+  $("div.tabular#t2 input#p6").val($("div.linear#t2 input#p6").val());
+});
+
+// Display the score
+function updatescore(){
+  $("#scoret1").val(scoret1);
+  $("#scoret2").val(scoret2);
+}
+
+// Display the serving team (checkbox)
+function updateserver(){
+  if (serving == 1) {checkservingt1();}
+  if (serving == 2) {checkservingt2();}
+}
+
+// Check the team 1 serving box (disallowed if game already started)
+$("#servingt1").on("click", function(){
+  if (started == 1) {alert("Game has already started."); return false;}
+  else {checkservingt1();}
+});
+
+// Check the team 2 serving box (disallowed if game already started)
+$("#servingt2").on("click", function(){
+  if (started == 1) {alert("Game has already started."); return false;}
+  else {checkservingt2();}
+});
+
+// Mechanics to check team 1 box and uncheck team 2 box
+function checkservingt1(){
+  $("#servingt2").prop("checked", false);
+  $("#servingt1").prop("checked", true);
+  serving = 1;
+}
+
+// Mechanics to check team 2 box and uncheck team 1 box
+function checkservingt2(){
+  $("#servingt1").prop("checked", false);
+  $("#servingt2").prop("checked", true);
+  serving = 2;
+}
+
+
+// Add score to team 1.
+// Start game if not started already
+// Check the serving, rotate if necessary, increase the score, and add to log
+// Also redraw score
+$("#plus1t1").on("click", function(){
+  if (started == 0) { if (startgame()){} else {return false;}}
+  if (serving == 1) {}
+  else {checkservingt1(); rotatet1();}
+  scoret1 += 1;
+  log.push(1);
+  updatescore();
+});
+
+// Add score to team 2.
+// Start game if not started already
+// Check the serving, rotate if necessary, increase the score, and add to log
+// Also redraw score
+$("#plus1t2").on("click", function(){
+  if (started == 0) { if (startgame()){} else {return false;}}
+  if (serving == 2) {}
+  else {checkservingt2(); rotatet2();}
+  scoret2 += 1;
+  log.push(2);
+  updatescore();
+});
+
+// Start the game. Returns false and doesn't start game if the line-ups aren't completely filled.
+// Returns true if game has been successfully started.
+function startgame(){
+  if (!checkteams()) {alert("Please fill in the line-ups."); return false;}
+  if (!checktabular()) {$("#onCourt1").trigger("click"); $("#onCourt2").trigger("click");}
+  started = 1;
+  return true;
+}
+
+// Rotate team 1
+// First rotate them on the lineup, then just click oncourt
+function rotatet1(){
+  var 
+    p1 = $("div.linear#t1 input#p1").val(),
+    p2 = $("div.linear#t1 input#p2").val(),
+    p3 = $("div.linear#t1 input#p3").val(),
+    p4 = $("div.linear#t1 input#p4").val(),
+    p5 = $("div.linear#t1 input#p5").val(),
+    p6 = $("div.linear#t1 input#p6").val();
+
+  $("div.linear#t1 input#p1").val(p2);
+  $("div.linear#t1 input#p2").val(p3);
+  $("div.linear#t1 input#p3").val(p4);
+  $("div.linear#t1 input#p4").val(p5);
+  $("div.linear#t1 input#p5").val(p6);
+  $("div.linear#t1 input#p6").val(p1);
+
+  $("#onCourt1").trigger("click");
+};
+
+// Rotate team 2
+// First rotate them on the lineup, then just click oncourt
+function rotatet2(){
+  var 
+    p1 = $("div.linear#t2 input#p1").val(),
+    p2 = $("div.linear#t2 input#p2").val(),
+    p3 = $("div.linear#t2 input#p3").val(),
+    p4 = $("div.linear#t2 input#p4").val(),
+    p5 = $("div.linear#t2 input#p5").val(),
+    p6 = $("div.linear#t2 input#p6").val();
+
+  $("div.linear#t2 input#p1").val(p2);
+  $("div.linear#t2 input#p2").val(p3);
+  $("div.linear#t2 input#p3").val(p4);
+  $("div.linear#t2 input#p4").val(p5);
+  $("div.linear#t2 input#p5").val(p6);
+  $("div.linear#t2 input#p6").val(p1);
+
+  $("#onCourt2").trigger("click");
+};
+
+// Unrotate team 1
+function unrotatet1(){
+  var 
+    p1 = $("div.linear#t1 input#p1").val(),
+    p2 = $("div.linear#t1 input#p2").val(),
+    p3 = $("div.linear#t1 input#p3").val(),
+    p4 = $("div.linear#t1 input#p4").val(),
+    p5 = $("div.linear#t1 input#p5").val(),
+    p6 = $("div.linear#t1 input#p6").val();
+
+  $("div.linear#t1 input#p1").val(p6);
+  $("div.linear#t1 input#p2").val(p1);
+  $("div.linear#t1 input#p3").val(p2);
+  $("div.linear#t1 input#p4").val(p3);
+  $("div.linear#t1 input#p5").val(p4);
+  $("div.linear#t1 input#p6").val(p5);
+
+  $("#onCourt1").trigger("click");
+};
+
+// Unrotate team 2
+function unrotatet2(){
+  var 
+    p1 = $("div.linear#t2 input#p1").val(),
+    p2 = $("div.linear#t2 input#p2").val(),
+    p3 = $("div.linear#t2 input#p3").val(),
+    p4 = $("div.linear#t2 input#p4").val(),
+    p5 = $("div.linear#t2 input#p5").val(),
+    p6 = $("div.linear#t2 input#p6").val();
+
+  $("div.linear#t2 input#p1").val(p6);
+  $("div.linear#t2 input#p2").val(p1);
+  $("div.linear#t2 input#p3").val(p2);
+  $("div.linear#t2 input#p4").val(p3);
+  $("div.linear#t2 input#p5").val(p4);
+  $("div.linear#t2 input#p6").val(p5);
+
+  $("#onCourt2").trigger("click");
+};
+
+// Undo.
+// Pop from the log, subtract the score, check who's serving, and unrotate if necessary
+$("#undo").on("click", function(){
+  var lastteam;
+  lastteam = log.pop();
+       if (lastteam == 1) {scoret1 -= 1; serving = log[log.length-1];
+         if (log[log.length-1] != lastteam) {unrotatet1();}}
+  else if (lastteam == 2) {scoret2 -= 1; serving = log[log.length-1]
+         if (log[log.length-1] != lastteam) {unrotatet2();}}
+  updatescore();
+  updateserver();
+});
+
+// Show the howto message
+$("a.howto").on("click", function(){
+  $("td.instructions ol").toggleClass("hidden");
+  return false;
+});
+
+// Show the howto message when h button pressed
+$(document).keypress(function(e){
+  var c = String.fromCharCode(e.which);
+  if(c == "h"){
+    $("a.howto").trigger("click");
+  }
+});
+</script>
