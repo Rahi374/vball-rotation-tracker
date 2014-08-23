@@ -38,6 +38,8 @@ So, I made this version, right before the 2014 volleyball season, now with all t
 
 Now I just need to add a viewer of how the game went.
 
+Oh, and when I make JS webapps I prefer to keep them in one page, so that's why that's the only file there.
+
 ### TODOs
 
 - Log exporting and visualizing the game flow.
