@@ -22,7 +22,7 @@ The usage is actually on the page, but I'm going to copy&paste it here anyway fo
 
 ### Where to try
 
-- http://amanokami.net/projects/vball-rotation2.html (This is where it usually will be, for for now, it's down.)
+- http://amanokami.net/projects/vball-rotation2.html (This is where it usually will be, but for now, it's down.)
 - http://home.amanokami.net/vball-rotation2.html (This is the temporary place it will be hosted. Since this server has dynamic IP, the availability may flicker.)
 
 ### Comments
